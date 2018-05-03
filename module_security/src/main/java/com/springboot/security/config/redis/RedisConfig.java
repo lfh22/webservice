@@ -4,11 +4,13 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
+import com.springboot.security.util.ApplicationContextHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.interceptor.KeyGenerator;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheManager;
@@ -32,11 +34,23 @@ import java.util.Map;
 @EnableCaching
 public class RedisConfig  extends CachingConfigurerSupport{
 
-//    @Bean
-//    public RedisConnectionFactory redisConnectionFactory(){
-//        JedisConnectionFactory factory = new JedisConnectionFactory();
-//        return  factory;
-//    }
+    @Bean
+    public KeyGenerator keyGenerator(){
+        return new KeyGenerator() {
+            @Override
+            public Object generate(Object target, Method method, Object... params) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(target.getClass().getName());
+                sb.append(method.getName());
+                for (Object obj : params) {
+                    sb.append(obj.toString());
+                }
+                return sb.toString();
+            }
+        };
+
+    }
+
     @Bean
     public RedisTemplate redisTemplate(RedisConnectionFactory factory){
         //创建一个模板
@@ -61,16 +75,11 @@ public class RedisConfig  extends CachingConfigurerSupport{
 
     @Bean
     public  CacheManager cacheManager(RedisConnectionFactory connectionFactory,RedisTemplate<Object,Object> redisTemplate){
-        CacheItemConfig productCacheItemConfig=new CacheItemConfig("Product",30,25);
+        CacheItemConfig productCacheItemConfig=new CacheItemConfig("Product",30,5);
         List<CacheItemConfig> cacheItemConfigs= Lists.newArrayList(productCacheItemConfig);
 
         CustomizedRedisCacheManager cacheManager = new CustomizedRedisCacheManager(connectionFactory,redisTemplate,cacheItemConfigs);
 
         return cacheManager;
     }
-
-//    @Bean
-//    public RedisCacheManager cacheManager(RedisTemplate redisTemplate){
-//        return new RedisCacheManager(redisTemplate);
-//    }
 }

@@ -1,5 +1,6 @@
 package com.springboot.security.config.redis;
 
+import com.springboot.security.util.ApplicationContextHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.cache.RedisCache;
@@ -20,9 +21,6 @@ public class CustomizedRedisCache extends RedisCache{
     private static  final Lock REFRESH_CACKE_LOCK = new ReentrantLock();
     private RedisOperations redisOperations;
 
-    private CacheSupport getCacheSupport(){
-        return ApplicationContextHelper.getApplicationContext().getBean(CacheSupport.class);
-    }
     public CustomizedRedisCache(String name, RedisCacheWriter cacheWriter, RedisCacheConfiguration cacheConfig,RedisOperations redisOperations) {
         super(name, cacheWriter, cacheConfig);
         this.redisOperations = redisOperations;
@@ -39,9 +37,12 @@ public class CustomizedRedisCache extends RedisCache{
             CacheItemConfig cacheItemConfig = CacheContainer.getCacheItemConfigByCacheName(key.toString());
             long preLoadTimeSecond=cacheItemConfig.getPreLoadTimeSecond();
 
+            System.out.println("preLoadTimeSecond:"+preLoadTimeSecond);
+
             String cachekey = this.createCacheKey(key);
             Long ttl = this. redisOperations.getExpire(cachekey);
 
+            System.out.println("preLoadTimeSecond:"+preLoadTimeSecond);
             if(null!=ttl && ttl<=preLoadTimeSecond){
                 logger.info("key:{} ttl:{} preloadSecondTime:{}",cachekey,ttl,preLoadTimeSecond);
 
@@ -57,9 +58,8 @@ public class CustomizedRedisCache extends RedisCache{
                                     logger.info("do not need to refresh");
                                 }else{
                                     logger.info("refresh key:{}",cachekey);
-//                                    System.out.println( CustomizedRedisCache.this.getCacheSupport());
-                                    System.out.println( CustomizedRedisCache.super.getName());
-                                    CustomizedRedisCache.this.getCacheSupport().refreshCacheByKey(CustomizedRedisCache.super.getName(), key.toString());
+
+                                    ApplicationContextHelper.getBean(CacheSupport.class).refreshCacheByKey(CustomizedRedisCache.super.getName(), key.toString());
                                     ThreadTaskHelper.removeRefreshCacheTask(cachekey);
                                 }
                             }finally {
